@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "start-storybook -p 9001 -c ./storybook"
+  },
+  "devDependencies": {
+    "@kadira/storybook": "^2.35.3",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4"
+  }
+}
