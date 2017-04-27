@@ -18,7 +18,16 @@ class LocaleProvider extends Component {
 }
 
 const withLocale = WrappedComponent => {
-  const Wrapper = (props, { locale }) => <WrappedComponent locale={locale} {...props} />;
+  class Wrapper extends Component {
+
+    state = {
+      locale: this.context.locale,
+    }
+
+    render() {
+      <WrappedComponent locale={this.state.locale} {...this.props} />;
+    }
+  };
 
   Wrapper.contextTypes = LocaleProvider.childContextTypes;
   Wrapper.displayName = `withLocale(${WrappedComponent.displayName})`;
@@ -65,4 +74,5 @@ class Container extends Component {
   }
 }
 
-storiesOf("Context", module).add("HOC", () => <Container />);
+storiesOf("Context", module).add("Subscription", () => <Container />);
+
