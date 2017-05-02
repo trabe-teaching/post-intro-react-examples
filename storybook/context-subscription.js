@@ -1,14 +1,34 @@
-import React, { Component, Children, PropTypes } from "react";
+import React, { Component, Children } from "react";
+import PropTypes from "prop-types";
 import { storiesOf } from "@kadira/storybook";
 
 class LocaleProvider extends Component {
   static childContextTypes = {
     locale: PropTypes.string,
+    subscribe: PropTypes.func,
   };
+
+  state = {
+    locale: this.props.locale,
+  }
+
+  componentWillReceiveProps({ locale }) {
+    this.setState({ locale });
+  }
+
+  componentDidUpdate() {
+    this.listeners.forEach(listener => listener(this.state.locale));
+  }
 
   getChildContext() {
     return {
-      locale: this.props.locale,
+      locale: this.state.locale,
+      subscribe: listener => {
+        this.listeners = [...(this.listeners || []), listener];
+        return () => {
+          this.listeners = this.listeners.filter(l => l !== listener);
+        }
+      }
     };
   }
 
@@ -24,8 +44,18 @@ const withLocale = WrappedComponent => {
       locale: this.context.locale,
     }
 
+    componentDidMount() {
+      this.unsubscribe = this.context.subscribe(locale => {
+        this.setState({ locale });
+      });
+    }
+
+    componeWillUnmount() {
+      this.unsubscribe();
+    }
+
     render() {
-      <WrappedComponent locale={this.state.locale} {...this.props} />;
+      return <WrappedComponent locale={this.state.locale} {...this.props} />;
     }
   };
 
@@ -34,6 +64,8 @@ const withLocale = WrappedComponent => {
 
   return Wrapper;
 };
+
+
 
 let CurrentLocale = ({ locale }) => <p>Current locale: {locale}</p>;
 CurrentLocale = withLocale(CurrentLocale);
