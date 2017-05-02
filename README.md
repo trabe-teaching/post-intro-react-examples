@@ -1,4 +1,4 @@
-# Post-introduccion a React: Examples
+# Post-introduction to React: Examples
 
 Just install and run:
 
