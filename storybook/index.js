@@ -5,4 +5,5 @@ import "./context-subscription";
 import "./children-api";
 import "./form-controlled";
 import "./form-uncontrolled";
+import "./should-component-update";
 
