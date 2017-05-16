@@ -7,3 +7,4 @@ import "./form-controlled";
 import "./form-uncontrolled";
 import "./should-component-update";
 import "./poor-man-redux";
+import "./jquery";
