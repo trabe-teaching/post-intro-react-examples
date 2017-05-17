@@ -2,9 +2,6 @@ import React, { Component, Children } from "react";
 import PropTypes from "prop-types";
 import { storiesOf } from "@kadira/storybook";
 
-const blueTheme = { color: "#0000bb" };
-const redTheme = { color: "#bb0000" };
-
 const MyForm = () => {
   let input;
 
