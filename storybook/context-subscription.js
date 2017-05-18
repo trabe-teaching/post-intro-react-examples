@@ -17,7 +17,7 @@ class LocaleProvider extends Component {
   }
 
   componentDidUpdate() {
-    this.listeners.forEach(listener => listener(this.state.locale));
+    (this.listeners || []).forEach(listener => listener(this.state.locale));
   }
 
   getChildContext() {
