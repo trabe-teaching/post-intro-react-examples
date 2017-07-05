@@ -11,13 +11,18 @@ const createStore = (reducer, initialState) => {
   const subscribe = listener => {
     listeners = [...listeners, listener];
     return () => {
-      listeners = listeners.select(l => l !== listener);
+      listeners = listeners.filter(l => l !== listener);
     };
   };
 
+
   const dispatch = action => {
-    state = reducer(state, action);
-    listeners.forEach(l => l());
+    if (action instanceof Function) {
+      action(dispatch);
+    } else {
+      state = reducer(state, action);
+      listeners.forEach(listener => listener());
+    }
   };
 
   return {
@@ -27,27 +32,18 @@ const createStore = (reducer, initialState) => {
   };
 };
 
-const initialState = {
-  count: 0,
-  potato: "nope",
-};
-
 const INCREMENT = "INCREMENT";
-const PATATIZE = "PATATIZE";
-const increment = () => ({ type: INCREMENT });
-
-const potato = (state = initialState.potato, { type }) => {
-  switch(type) {
-    case PATATIZE:
-      return "yes";
-
-    default:
-      return state;
-  }
+const increment = () => dispatch => {
+  Promise.resolve().then(() => {
+    dispatch({ type: INCREMENT });
+  });
 };
 
-const count = (state = initialState.count, { type }) => {
-  switch(type) {
+const PATATIZE = "PATATIZE";
+const patatize = () => ({ type: PATATIZE });
+
+const count = (state = 40, action) => {
+  switch (action.type) {
     case INCREMENT:
       return state + 1;
     default:
@@ -55,26 +51,59 @@ const count = (state = initialState.count, { type }) => {
   }
 };
 
+const getCount = state => state;
 
-const combineReducers = reducers => (state, action) =>
-  Object.keys(reducers).reduce((s, k) => {
-    s[k] = reducers[k](state && state[k], action);
-    return s;
-  }, {});
+const potatoes = (state = 0, action) => {
+  switch (action.type) {
+    case PATATIZE:
+      return state + 1;
+    default:
+      return state;
+  }
+};
 
-const getCount = state => state.count;
+const combineReducers = reducers => (state = {}, action) =>
+  Object.keys(reducers).reduce((newState, key) => ({ ...newState, [key]: reducers[key](state[key], action) }), {});
+
+const counters = combineReducers({ count, potatoes });
+
+const getCountersCount = state => getCount(state.count);
 
 
 
-const reducer = combineReducers({ count, potato });
+const reducer = combineReducers({
+  forlayos: counters,
+});
+
+const getApplicationCountersCount = state => getCountersCount(state.forlayos);
+
 const store = createStore(reducer);
 
+store.subscribe(() => { console.log("NEW STATE", store.getState()) });
+
+const Counter = ({ count }) => <div>{count} clicks</div>;
+
+const Button = ({ children, onClick }) => {
+  const handler = e => {
+    e.preventDefault();
+    onClick();
+  };
+
+  return <button onClick={handler}>{children}</button>;
+};
+
+const identity = () => ({});
+
 class Provider extends Component {
+
+  static childContextTypes = {
+    store: PropTypes.object,
+  }
 
   getChildContext() {
     return {
       store: this.props.store,
-    }
+    };
   }
 
   render() {
@@ -82,13 +111,9 @@ class Provider extends Component {
   }
 }
 
-Provider.childContextTypes = {
-  store: PropTypes.object,
-};
+const connect = (mapStateToProps, mapDispatchToProps) => WrappedComponent => {
 
-
-const connect = (mapStateToProps = () => ({}), mapDispatchToProps = () => ({})) => WrappedComponent => {
-  class Wrapper extends Component {
+  class Connected extends Component {
 
     state = {
       reduxState: this.context.store.getState(),
@@ -108,49 +133,35 @@ const connect = (mapStateToProps = () => ({}), mapDispatchToProps = () => ({})) 
       }
     }
 
-    shouldComponentUpdate(nextState, nextProps) {
-      return this.state !== nextState;
-    }
-
     render() {
-      const computedProps = {
+      const stateProps = (mapStateToProps || identity)(this.state.reduxState, this.props);
+      const handlers = (mapDispatchToProps || identity)(this.context.store.dispatch, this.props);
+      const connectedProps = {
         ...this.props,
-        ...mapStateToProps(this.state.reduxState, this.props),
-        ...mapDispatchToProps(this.context.store.dispatch, this.props),
+        ...stateProps,
+        ...handlers,
         dispatch: this.context.store.dispatch,
       };
 
-      return <WrappedComponent {...computedProps } />
+      return <WrappedComponent {...connectedProps} />;
     }
   }
 
-  Wrapper.contextTypes = Provider.childContextTypes;
+  Connected.contextTypes = Provider.childContextTypes;
 
-  Wrapper.displayName = `connected(${WrappedComponent.displayName})`;
-  return Wrapper;
-};
+  Connected.displayName = `connected(${WrappedComponent.displayName})`;
 
-
-const Counter = ({ count }) => <div>{count} clicks</div>;
+  return Connected;
+}
 
 const ConnectedCounter = connect(
   state => ({
-    count: getCount(state),
-  })
+    count: getApplicationCountersCount(state),
+  }),
 )(Counter);
 
-const Button = ({ children, onClick }) => {
-  const handler = e => {
-    e.preventDefault();
-    onClick();
-  };
-
-  return <button onClick={handler}>{children}</button>;
-}
-
-
 const ConnectedButton = connect(
-  undefined,
+  null,
   dispatch => ({
     onClick: () => dispatch(increment()),
   })
